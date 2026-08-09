@@ -1,0 +1,128 @@
+-- =========================================================
+-- TSB EXTREME VOID MODE (ZERO LAG - AFK READY)
+-- =========================================================
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Camera = Workspace.CurrentCamera
+
+---------------------------------------------------------
+-- 1. GUI TỐI GIẢN
+---------------------------------------------------------
+if PlayerGui:FindFirstChild("TSB_Custom_Tools_Gui") then PlayerGui.TSB_Custom_Tools_Gui:Destroy() end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TSB_Custom_Tools_Gui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+local FreezeAutoDieBtn = Instance.new("TextButton")
+FreezeAutoDieBtn.Size = UDim2.new(0, 150, 0, 40)
+FreezeAutoDieBtn.Position = UDim2.new(0, 10, 0.25, -30)
+FreezeAutoDieBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+FreezeAutoDieBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FreezeAutoDieBtn.Text = "💀 Freeze + Die: OFF"
+FreezeAutoDieBtn.Font = Enum.Font.GothamBold
+FreezeAutoDieBtn.Parent = ScreenGui
+Instance.new("UICorner", FreezeAutoDieBtn).CornerRadius = UDim.new(0, 8)
+
+---------------------------------------------------------
+-- 2. EXTREME VOID ENGINE (XÓA & ẨN KHÔNG CẦN CHECK)
+---------------------------------------------------------
+local function nukeMap()
+    -- 1. Xóa Lighting triệt để
+    Lighting.Brightness = 0
+    Lighting.ClockTime = 0
+    Lighting.Ambient = Color3.new(0,0,0)
+    Lighting.OutdoorAmbient = Color3.new(0,0,0)
+    for _, v in ipairs(Lighting:GetChildren()) do v:Destroy() end
+
+    -- 2. Xóa Vfx/Particle/Highlight
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") 
+           or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Explosion") 
+           or obj:IsA("Sparkles") or obj:IsA("Highlight") or obj:IsA("Decal") 
+           or obj:IsA("Texture") or obj:IsA("Clouds") or obj:IsA("Sky") 
+           or obj:IsA("PostEffect") or obj:IsA("Atmosphere") then
+            obj:Destroy()
+        end
+        -- Làm tàng hình Map nhưng giữ va chạm (để vẫn bị đánh trúng)
+        if (obj:IsA("BasePart") or obj:IsA("MeshPart")) and obj.Name ~= "HumanoidRootPart" and not obj:IsDescendantOf(LocalPlayer.Character) then
+            obj.Transparency = 1
+            obj.CastShadow = false
+        end
+    end
+end
+
+-- Chạy ngay lập tức
+nukeMap()
+
+---------------------------------------------------------
+-- 3. FREEZE AUTO DIE LOGIC (TỐI ƯU HÓA)
+---------------------------------------------------------
+local targetCFrame1 = CFrame.new(439.18, 439.51, -375.31)
+local isAutoDieFrozen = false
+local autoDieConnection = nil
+local healthConn = nil
+local lastHealth = 100
+local isDying = false
+
+local function triggerInstantVoidDeath()
+    if isDying then return end
+    isDying = true
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local hrp = char.HumanoidRootPart
+        hrp.CFrame = CFrame.new(hrp.Position.X, -1000, hrp.Position.Z)
+        char:BreakJoints()
+    end
+end
+
+FreezeAutoDieBtn.MouseButton1Click:Connect(function()
+    isAutoDieFrozen = not isAutoDieFrozen
+    if isAutoDieFrozen then
+        FreezeAutoDieBtn.Text = "💀 Freeze + Die: ON"
+        FreezeAutoDieBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+        
+        -- Dùng Loop thay vì RenderStepped để giảm tải CPU
+        autoDieConnection = task.spawn(function()
+            while isAutoDieFrozen do
+                local curChar = LocalPlayer.Character
+                if curChar and curChar:FindFirstChild("HumanoidRootPart") and curChar:FindFirstChild("Humanoid") then
+                    local hum = curChar.Humanoid
+                    local hrp = curChar.HumanoidRootPart
+                    
+                    if hum.Health < lastHealth or curChar:FindFirstChild("Ragdoll") or curChar:FindFirstChild("Stun") then
+                        triggerInstantVoidDeath()
+                    end
+                    
+                    if not isDying then
+                        hrp.CFrame = targetCFrame1
+                        hrp.AssemblyLinearVelocity = Vector3.zero
+                    end
+                end
+                task.wait(0.1) -- 10 lần mỗi giây là đủ, không cần 60
+            end
+        end)
+    else
+        FreezeAutoDieBtn.Text = "💀 Freeze + Die: OFF"
+        FreezeAutoDieBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+        isAutoDieFrozen = false
+        isDying = false
+    end
+end)
+
+-- NoClip giữ cho mượt (Tắt va chạm với vật thể khác)
+RunService.Stepped:Connect(function()
+    if LocalPlayer.Character then
+        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+        end
+    end
+end)
+
