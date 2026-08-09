@@ -1,123 +1,232 @@
 -- =========================================================
--- TSB EXTREME VOID MODE (ZERO LAG - AFK READY)
+-- TSB ULTIMATE VOID MODE + FREEZE + SMART SKILL 3 (MOBILE FIX)
 -- =========================================================
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
+local StarterGui = game:GetService("StarterGui")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local Camera = Workspace.CurrentCamera
 
 ---------------------------------------------------------
--- 1. GUI TỐI GIẢN
+-- 1. GUI (TÁCH BIỆT 2 NÚT)
 ---------------------------------------------------------
-if PlayerGui:FindFirstChild("TSB_Custom_Tools_Gui") then PlayerGui.TSB_Custom_Tools_Gui:Destroy() end
+if PlayerGui:FindFirstChild("TSB_Custom_Tools_Gui") then 
+    PlayerGui.TSB_Custom_Tools_Gui:Destroy() 
+end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "TSB_Custom_Tools_Gui"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
-local FreezeAutoDieBtn = Instance.new("TextButton")
-FreezeAutoDieBtn.Size = UDim2.new(0, 150, 0, 40)
-FreezeAutoDieBtn.Position = UDim2.new(0, 10, 0.25, -30)
-FreezeAutoDieBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-FreezeAutoDieBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-FreezeAutoDieBtn.Text = "💀 Freeze + Die: OFF"
-FreezeAutoDieBtn.Font = Enum.Font.GothamBold
-FreezeAutoDieBtn.Parent = ScreenGui
-Instance.new("UICorner", FreezeAutoDieBtn).CornerRadius = UDim.new(0, 8)
+-- Nút Freeze Pos
+local FreezeBtn = Instance.new("TextButton")
+FreezeBtn.Size = UDim2.new(0, 150, 0, 40)
+FreezeBtn.Position = UDim2.new(0, 10, 0.25, -30)
+FreezeBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+FreezeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FreezeBtn.Text = "🧊 Freeze Pos: OFF"
+FreezeBtn.Font = Enum.Font.GothamBold
+FreezeBtn.TextSize = 12
+FreezeBtn.Active = true
+FreezeBtn.Parent = ScreenGui
+Instance.new("UICorner", FreezeBtn).CornerRadius = UDim.new(0, 8)
+
+-- Nút Combo Smart Skill 3
+local AutoPunchSkillBtn = Instance.new("TextButton")
+AutoPunchSkillBtn.Size = UDim2.new(0, 150, 0, 40)
+AutoPunchSkillBtn.Position = UDim2.new(0, 10, 0.35, -30)
+AutoPunchSkillBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+AutoPunchSkillBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoPunchSkillBtn.Text = "🎯 Smart Skill 3: OFF"
+AutoPunchSkillBtn.Font = Enum.Font.GothamBold
+AutoPunchSkillBtn.TextSize = 12
+AutoPunchSkillBtn.Active = true
+AutoPunchSkillBtn.Parent = ScreenGui
+Instance.new("UICorner", AutoPunchSkillBtn).CornerRadius = UDim.new(0, 8)
 
 ---------------------------------------------------------
--- 2. EXTREME VOID ENGINE (XÓA & ẨN KHÔNG CẦN CHECK)
+-- 2. EXTREME VOID ENGINE (ONE-PASS CLEANUP & ANTILAG)
 ---------------------------------------------------------
-local function nukeMap()
-    -- 1. Xóa Lighting triệt để
+local function nukeEverything()
+    pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false) end)
     Lighting.Brightness = 0
     Lighting.ClockTime = 0
-    Lighting.Ambient = Color3.new(0,0,0)
-    Lighting.OutdoorAmbient = Color3.new(0,0,0)
-    for _, v in ipairs(Lighting:GetChildren()) do v:Destroy() end
+    Lighting.Ambient = Color3.new(0, 0, 0)
+    Lighting.OutdoorAmbient = Color3.new(0, 0, 0)
+    Lighting.GlobalShadows = false
+    
+    for _, obj in ipairs(Lighting:GetChildren()) do obj:Destroy() end
+    for _, sound in ipairs(SoundService:GetDescendants()) do if sound:IsA("Sound") then sound:Destroy() end end
 
-    -- 2. Xóa Vfx/Particle/Highlight
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") 
            or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Explosion") 
            or obj:IsA("Sparkles") or obj:IsA("Highlight") or obj:IsA("Decal") 
            or obj:IsA("Texture") or obj:IsA("Clouds") or obj:IsA("Sky") 
-           or obj:IsA("PostEffect") or obj:IsA("Atmosphere") then
+           or obj:IsA("PostEffect") or obj:IsA("Atmosphere") or obj:IsA("Sound") then
             obj:Destroy()
-        end
-        -- Làm tàng hình Map nhưng giữ va chạm (để vẫn bị đánh trúng)
-        if (obj:IsA("BasePart") or obj:IsA("MeshPart")) and obj.Name ~= "HumanoidRootPart" and not obj:IsDescendantOf(LocalPlayer.Character) then
+        elseif (obj:IsA("BasePart") or obj:IsA("MeshPart")) and not obj:IsDescendantOf(LocalPlayer.Character) and obj.Name ~= "HumanoidRootPart" then
             obj.Transparency = 1
             obj.CastShadow = false
+            obj.Material = Enum.Material.SmoothPlastic
         end
     end
 end
 
--- Chạy ngay lập tức
-nukeMap()
+nukeEverything()
 
 ---------------------------------------------------------
--- 3. FREEZE AUTO DIE LOGIC (TỐI ƯU HÓA)
+-- 3. LOGIC FREEZE TỌA ĐỘ
 ---------------------------------------------------------
 local targetCFrame1 = CFrame.new(439.18, 439.51, -375.31)
-local isAutoDieFrozen = false
-local autoDieConnection = nil
-local healthConn = nil
-local lastHealth = 100
-local isDying = false
+local isFrozen = false
 
-local function triggerInstantVoidDeath()
-    if isDying then return end
-    isDying = true
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        local hrp = char.HumanoidRootPart
-        hrp.CFrame = CFrame.new(hrp.Position.X, -1000, hrp.Position.Z)
-        char:BreakJoints()
-    end
-end
-
-FreezeAutoDieBtn.MouseButton1Click:Connect(function()
-    isAutoDieFrozen = not isAutoDieFrozen
-    if isAutoDieFrozen then
-        FreezeAutoDieBtn.Text = "💀 Freeze + Die: ON"
-        FreezeAutoDieBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
-        
-        -- Dùng Loop thay vì RenderStepped để giảm tải CPU
-        autoDieConnection = task.spawn(function()
-            while isAutoDieFrozen do
-                local curChar = LocalPlayer.Character
-                if curChar and curChar:FindFirstChild("HumanoidRootPart") and curChar:FindFirstChild("Humanoid") then
-                    local hum = curChar.Humanoid
-                    local hrp = curChar.HumanoidRootPart
-                    
-                    if hum.Health < lastHealth or curChar:FindFirstChild("Ragdoll") or curChar:FindFirstChild("Stun") then
-                        triggerInstantVoidDeath()
-                    end
-                    
-                    if not isDying then
-                        hrp.CFrame = targetCFrame1
-                        hrp.AssemblyLinearVelocity = Vector3.zero
-                    end
-                end
-                task.wait(0.1) -- 10 lần mỗi giây là đủ, không cần 60
-            end
-        end)
+FreezeBtn.MouseButton1Click:Connect(function()
+    isFrozen = not isFrozen
+    if isFrozen then
+        FreezeBtn.Text = "🧊 Freeze Pos: ON"
+        FreezeBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
     else
-        FreezeAutoDieBtn.Text = "💀 Freeze + Die: OFF"
-        FreezeAutoDieBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-        isAutoDieFrozen = false
-        isDying = false
+        FreezeBtn.Text = "🧊 Freeze Pos: OFF"
+        FreezeBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
     end
 end)
 
--- NoClip giữ cho mượt (Tắt va chạm với vật thể khác)
+RunService.RenderStepped:Connect(function()
+    if isFrozen and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = targetCFrame1
+        LocalPlayer.Character.HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
+    end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    local hum = newChar:WaitForChild("Humanoid", 5)
+    if hum then 
+        local anim = hum:FindFirstChildOfClass("Animator") 
+        if anim then anim:Destroy() end 
+    end
+    
+    if isFrozen then
+        task.delay(0.5, function()
+            if newChar:FindFirstChild("HumanoidRootPart") then 
+                newChar.HumanoidRootPart.CFrame = targetCFrame1 
+            end
+        end)
+    end
+end)
+
+---------------------------------------------------------
+-- 4. LOGIC ĐÁNH & CHIÊU (SMART SKILL 3 - FIX MOBILE)
+---------------------------------------------------------
+local function pressKey(keyCode)
+    pcall(function()
+        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+        task.wait(0.05)
+        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+    end)
+end
+
+local function spamKey(keyCode, duration)
+    local startTime = tick()
+    while tick() - startTime < duration do
+        pressKey(keyCode)
+        task.wait(0.05)
+    end
+end
+
+-- Fix đấm cho Mobile: kích hoạt Tool/Activate hoặc dùng VirtualInputManager làm dự phòng
+local function performPunch()
+    pcall(function()
+        local char = LocalPlayer.Character
+        if char then
+            local tool = char:FindFirstChildOfClass("Tool")
+            if tool then
+                tool:Activate()
+            else
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                task.wait(0.05)
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+            end
+        end
+    end)
+end
+
+local function getValidAliveTarget()
+    local myChar = LocalPlayer.Character
+    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
+    local myPos = myChar.HumanoidRootPart.Position
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            local targetChar = plr.Character
+            local hum = targetChar:FindFirstChildOfClass("Humanoid")
+            local hrp = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Torso")
+            
+            if hum and hum.Health > 0 and hrp and not targetChar:FindFirstChildOfClass("ForceField") then
+                if (hrp.Position - myPos).Magnitude <= 12 then
+                    return targetChar
+                end
+            end
+        end
+    end
+    return nil
+end
+
+---------------------------------------------------------
+-- 5. CẤU HÌNH & LẮP VÒNG LẶP COMBO
+---------------------------------------------------------
+local HIT_TO_SKILL_DELAY = 0.6  -- Thời gian chờ giữa M1 và Chiêu 3
+local COMBO_LOOP_DELAY = 10     -- Thời gian chờ sau khi xả chiêu để lặp lại
+
+local autoPunchSkillEnabled = false
+local autoPunchSkillThread = nil
+
+local function startAutoPunchSkillLoop()
+    autoPunchSkillThread = task.spawn(function()
+        while autoPunchSkillEnabled do
+            local target = getValidAliveTarget()
+            if target then
+                -- Thực hiện Combo
+                performPunch()                    -- 1. Đấm M1 (Đã fix hỗ trợ Mobile)
+                task.wait(HIT_TO_SKILL_DELAY)     -- 2. Chờ 0.6 giây
+                
+                spamKey(Enum.KeyCode.Three, 0.4)  -- 3. Xả Chiêu 3
+                
+                -- 4. Chờ 10 giây trước khi thực hiện lượt combo tiếp theo
+                task.wait(COMBO_LOOP_DELAY)
+            else
+                task.wait(0.05)
+            end
+        end
+    end)
+end
+
+AutoPunchSkillBtn.MouseButton1Click:Connect(function()
+    autoPunchSkillEnabled = not autoPunchSkillEnabled
+    if autoPunchSkillEnabled then
+        AutoPunchSkillBtn.Text = "🎯 Smart Skill 3: ON"
+        AutoPunchSkillBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+        startAutoPunchSkillLoop()
+    else
+        AutoPunchSkillBtn.Text = "🎯 Smart Skill 3: OFF"
+        AutoPunchSkillBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+        if autoPunchSkillThread then
+            task.cancel(autoPunchSkillThread)
+            autoPunchSkillThread = nil
+        end
+    end
+end)
+
+---------------------------------------------------------
+-- 6. NO-COLLISION LOGIC
+---------------------------------------------------------
 RunService.Stepped:Connect(function()
     if LocalPlayer.Character then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
@@ -125,4 +234,3 @@ RunService.Stepped:Connect(function()
         end
     end
 end)
-
