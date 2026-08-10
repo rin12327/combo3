@@ -1,5 +1,5 @@
 -- =========================================================
--- TSB ULTIMATE VOID MODE + FREEZE + SMART SKILL 3 (MOBILE FIX)
+-- TSB ULTIMATE VOID MODE + FREEZE + SMART SKILL 3 (FULL MOBILE FIX)
 -- =========================================================
 
 local Players = game:GetService("Players")
@@ -9,6 +9,8 @@ local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 local StarterGui = game:GetService("StarterGui")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local GuiService = game:GetService("GuiService")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -52,10 +54,9 @@ AutoPunchSkillBtn.Parent = ScreenGui
 Instance.new("UICorner", AutoPunchSkillBtn).CornerRadius = UDim.new(0, 8)
 
 ---------------------------------------------------------
--- 2. EXTREME VOID ENGINE (ONE-PASS CLEANUP & ANTILAG)
+-- 2. EXTREME VOID ENGINE
 ---------------------------------------------------------
 local function nukeEverything()
-    pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false) end)
     Lighting.Brightness = 0
     Lighting.ClockTime = 0
     Lighting.Ambient = Color3.new(0, 0, 0)
@@ -79,7 +80,6 @@ local function nukeEverything()
         end
     end
 end
-
 nukeEverything()
 
 ---------------------------------------------------------
@@ -90,13 +90,8 @@ local isFrozen = false
 
 FreezeBtn.MouseButton1Click:Connect(function()
     isFrozen = not isFrozen
-    if isFrozen then
-        FreezeBtn.Text = "🧊 Freeze Pos: ON"
-        FreezeBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
-    else
-        FreezeBtn.Text = "🧊 Freeze Pos: OFF"
-        FreezeBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-    end
+    FreezeBtn.Text = isFrozen and "🧊 Freeze Pos: ON" or "🧊 Freeze Pos: OFF"
+    FreezeBtn.BackgroundColor3 = isFrozen and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
 RunService.RenderStepped:Connect(function()
@@ -108,71 +103,58 @@ end)
 
 LocalPlayer.CharacterAdded:Connect(function(newChar)
     local hum = newChar:WaitForChild("Humanoid", 5)
-    if hum then 
-        local anim = hum:FindFirstChildOfClass("Animator") 
-        if anim then anim:Destroy() end 
-    end
-    
+    if hum then local anim = hum:FindFirstChildOfClass("Animator") if anim then anim:Destroy() end end
     if isFrozen then
-        task.delay(0.5, function()
-            if newChar:FindFirstChild("HumanoidRootPart") then 
-                newChar.HumanoidRootPart.CFrame = targetCFrame1 
-            end
-        end)
+        task.delay(0.5, function() if newChar:FindFirstChild("HumanoidRootPart") then newChar.HumanoidRootPart.CFrame = targetCFrame1 end end)
     end
 end)
 
 ---------------------------------------------------------
--- 4. LOGIC ĐÁNH & CHIÊU (SMART SKILL 3 - FIX MOBILE)
+-- 4. LOGIC ĐÁNH & CHIÊU (ĐÃ CHỈNH HỆ SỐ LÊN 2.0)
 ---------------------------------------------------------
-local function pressKey(keyCode)
-    pcall(function()
-        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
-        task.wait(0.05)
-        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
-    end)
-end
+local function performPunch()
+    local foundBtn = nil
+    
+    -- Quét tìm UI nút Punch/Attack
+    for _, obj in pairs(PlayerGui:GetDescendants()) do
+        if obj:IsA("GuiButton") and obj.Visible and (obj.Name:lower():find("attack") or obj.Name:lower():find("punch")) then
+            foundBtn = obj
+            break
+        end
+    end
 
-local function spamKey(keyCode, duration)
-    local startTime = tick()
-    while tick() - startTime < duration do
-        pressKey(keyCode)
-        task.wait(0.05)
+    if foundBtn then
+        local centerPosition = foundBtn.AbsolutePosition + (foundBtn.AbsoluteSize / 2)
+        VirtualInputManager:SendMouseButtonEvent(centerPosition.X, centerPosition.Y, 0, true, game, 0)
+        VirtualInputManager:SendMouseButtonEvent(centerPosition.X, centerPosition.Y, 0, false, game, 0)
+    else
+        -- Fallback Mobile: X=2.0, Y=2.0 (Hệ số 2.0)
+        local vp = Workspace.CurrentCamera.ViewportSize
+        local touchX = vp.X * 2.0
+        local touchY = vp.Y * 2.0 
+        
+        VirtualInputManager:SendTouchEvent(0, Enum.UserInputState.Begin, touchX, touchY, game)
+        VirtualInputManager:SendTouchEvent(0, Enum.UserInputState.End, touchX, touchY, game)
     end
 end
 
--- Fix đấm cho Mobile: kích hoạt Tool/Activate hoặc dùng VirtualInputManager làm dự phòng
-local function performPunch()
-    pcall(function()
-        local char = LocalPlayer.Character
-        if char then
-            local tool = char:FindFirstChildOfClass("Tool")
-            if tool then
-                tool:Activate()
-            else
-                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                task.wait(0.05)
-                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-            end
-        end
-    end)
+local function castSkill3()
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Three, false, game)
+    task.wait(0.05)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Three, false, game)
 end
 
 local function getValidAliveTarget()
     local myChar = LocalPlayer.Character
     if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then return nil end
     local myPos = myChar.HumanoidRootPart.Position
-
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character then
             local targetChar = plr.Character
             local hum = targetChar:FindFirstChildOfClass("Humanoid")
-            local hrp = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Torso")
-            
+            local hrp = targetChar:FindFirstChild("HumanoidRootPart")
             if hum and hum.Health > 0 and hrp and not targetChar:FindFirstChildOfClass("ForceField") then
-                if (hrp.Position - myPos).Magnitude <= 12 then
-                    return targetChar
-                end
+                if (hrp.Position - myPos).Magnitude <= 12 then return targetChar end
             end
         end
     end
@@ -180,47 +162,32 @@ local function getValidAliveTarget()
 end
 
 ---------------------------------------------------------
--- 5. CẤU HÌNH & LẮP VÒNG LẶP COMBO
+-- 5. COMBO LOOP
 ---------------------------------------------------------
-local HIT_TO_SKILL_DELAY = 0.6  -- Thời gian chờ giữa M1 và Chiêu 3
-local COMBO_LOOP_DELAY = 10     -- Thời gian chờ sau khi xả chiêu để lặp lại
-
 local autoPunchSkillEnabled = false
 local autoPunchSkillThread = nil
 
-local function startAutoPunchSkillLoop()
-    autoPunchSkillThread = task.spawn(function()
-        while autoPunchSkillEnabled do
-            local target = getValidAliveTarget()
-            if target then
-                -- Thực hiện Combo
-                performPunch()                    -- 1. Đấm M1 (Đã fix hỗ trợ Mobile)
-                task.wait(HIT_TO_SKILL_DELAY)     -- 2. Chờ 0.6 giây
-                
-                spamKey(Enum.KeyCode.Three, 0.4)  -- 3. Xả Chiêu 3
-                
-                -- 4. Chờ 10 giây trước khi thực hiện lượt combo tiếp theo
-                task.wait(COMBO_LOOP_DELAY)
-            else
-                task.wait(0.05)
-            end
-        end
-    end)
-end
-
 AutoPunchSkillBtn.MouseButton1Click:Connect(function()
     autoPunchSkillEnabled = not autoPunchSkillEnabled
+    AutoPunchSkillBtn.Text = autoPunchSkillEnabled and "🎯 Smart Skill 3: ON" or "🎯 Smart Skill 3: OFF"
+    AutoPunchSkillBtn.BackgroundColor3 = autoPunchSkillEnabled and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
+    
     if autoPunchSkillEnabled then
-        AutoPunchSkillBtn.Text = "🎯 Smart Skill 3: ON"
-        AutoPunchSkillBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
-        startAutoPunchSkillLoop()
+        autoPunchSkillThread = task.spawn(function()
+            while autoPunchSkillEnabled do
+                local target = getValidAliveTarget()
+                if target then
+                    performPunch()           
+                    task.wait(0.6)           
+                    castSkill3()             
+                    task.wait(10)            
+                else
+                    task.wait(0.1)
+                end
+            end
+        end)
     else
-        AutoPunchSkillBtn.Text = "🎯 Smart Skill 3: OFF"
-        AutoPunchSkillBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-        if autoPunchSkillThread then
-            task.cancel(autoPunchSkillThread)
-            autoPunchSkillThread = nil
-        end
+        if autoPunchSkillThread then task.cancel(autoPunchSkillThread) end
     end
 end)
 
@@ -234,3 +201,4 @@ RunService.Stepped:Connect(function()
         end
     end
 end)
+Trong này code có con trỏ chuột phải ko
