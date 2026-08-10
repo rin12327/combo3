@@ -201,4 +201,3 @@ RunService.Stepped:Connect(function()
         end
     end
 end)
-Trong này code có con trỏ chuột phải ko
