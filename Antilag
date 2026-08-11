@@ -85,7 +85,7 @@ nukeEverything()
 ---------------------------------------------------------
 -- 3. LOGIC FREEZE TỌA ĐỘ
 ---------------------------------------------------------
-local targetCFrame1 = CFrame.new(439.18, 439.51, -375.31)
+local targetCFrame1 = CFrame.new(-50.75, 1578.34, 25251.73)
 local isFrozen = false
 
 FreezeBtn.MouseButton1Click:Connect(function()
@@ -113,14 +113,11 @@ end)
 -- 4. LOGIC ĐÁNH & CHIÊU (CỐ ĐỊNH CHUỘT GIẢ LẬP Ở TÂM MÀN HÌNH)
 ---------------------------------------------------------
 local function performPunch()
-    -- Lấy kích thước màn hình
     local vp = Workspace.CurrentCamera.ViewportSize
     
-    -- Tọa độ cố định tuyệt đối ở chính giữa tâm màn hình
     local centerX = vp.X / 2
     local centerY = vp.Y / 2
     
-    -- Giả lập click chuột trái đúng vị trí tâm màn hình
     VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 0)
     VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 0)
 end
