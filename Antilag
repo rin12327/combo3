@@ -119,7 +119,7 @@ end)
 ---------------------------------------------------------
 -- 3. LOGIC FREEZE TỌA ĐỘ
 ---------------------------------------------------------
-local targetCFrame1 = CFrame.new(-51.77, 1577.8, 25250.40)
+local targetCFrame1 = CFrame.new(-50.75, 1577.34, 25251.73)
 local isFrozen = false
 
 FreezeBtn.MouseButton1Click:Connect(function()
