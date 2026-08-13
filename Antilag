@@ -1,5 +1,5 @@
 -- =========================================================
--- TSB ULTIMATE VOID MODE + FREEZE + SMART SKILL 3 (FULL MOBILE FIX)
+-- TSB ULTIMATE VOID MODE + FREEZE + SMART SKILL 3 + FAR CAM
 -- =========================================================
 
 local Players = game:GetService("Players")
@@ -16,7 +16,7 @@ local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 ---------------------------------------------------------
--- 1. GUI (TÁCH BIỆT 2 NÚT)
+-- 1. GUI (TÁCH BIỆT CÁC NÚT)
 ---------------------------------------------------------
 if PlayerGui:FindFirstChild("TSB_Custom_Tools_Gui") then 
     PlayerGui.TSB_Custom_Tools_Gui:Destroy() 
@@ -53,39 +53,73 @@ AutoPunchSkillBtn.Active = true
 AutoPunchSkillBtn.Parent = ScreenGui
 Instance.new("UICorner", AutoPunchSkillBtn).CornerRadius = UDim.new(0, 8)
 
----------------------------------------------------------
--- 2. EXTREME VOID ENGINE
----------------------------------------------------------
-local function nukeEverything()
-    Lighting.Brightness = 0
-    Lighting.ClockTime = 0
-    Lighting.Ambient = Color3.new(0, 0, 0)
-    Lighting.OutdoorAmbient = Color3.new(0, 0, 0)
-    Lighting.GlobalShadows = false
-    
-    for _, obj in ipairs(Lighting:GetChildren()) do obj:Destroy() end
-    for _, sound in ipairs(SoundService:GetDescendants()) do if sound:IsA("Sound") then sound:Destroy() end end
+-- Nút Far Cam (0,0)
+local FarLockBtn = Instance.new("TextButton")
+FarLockBtn.Size = UDim2.new(0, 150, 0, 40)
+FarLockBtn.Position = UDim2.new(0, 10, 0.45, -30)
+FarLockBtn.BackgroundColor3 = Color3.fromRGB(230, 120, 20)
+FarLockBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FarLockBtn.Text = "🍊 Far Cam (0,0): OFF"
+FarLockBtn.Font = Enum.Font.GothamBold
+FarLockBtn.TextSize = 12
+FarLockBtn.Active = true
+FarLockBtn.Parent = ScreenGui
+Instance.new("UICorner", FarLockBtn).CornerRadius = UDim.new(0, 8)
 
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") 
-           or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Explosion") 
-           or obj:IsA("Sparkles") or obj:IsA("Highlight") or obj:IsA("Decal") 
-           or obj:IsA("Texture") or obj:IsA("Clouds") or obj:IsA("Sky") 
-           or obj:IsA("PostEffect") or obj:IsA("Atmosphere") or obj:IsA("Sound") then
-            obj:Destroy()
-        elseif (obj:IsA("BasePart") or obj:IsA("MeshPart")) and not obj:IsDescendantOf(LocalPlayer.Character) and obj.Name ~= "HumanoidRootPart" then
+---------------------------------------------------------
+-- 2. EXTREME VOID ENGINE (DỌN DẸP SẴN + DIỆT HIỆU ỨNG MỚI)
+---------------------------------------------------------
+local function cleanObject(obj)
+    if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Explosion") or obj:IsA("Sparkles") or obj:IsA("Highlight") or obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("Clouds") or obj:IsA("Sky") or obj:IsA("PostEffect") or obj:IsA("Atmosphere") or obj:IsA("Sound") then
+        obj:Destroy()
+    elseif (obj:IsA("BasePart") or obj:IsA("MeshPart")) then
+        if not (LocalPlayer.Character and obj:IsDescendantOf(LocalPlayer.Character)) and obj.Name ~= "HumanoidRootPart" then
             obj.Transparency = 1
             obj.CastShadow = false
             obj.Material = Enum.Material.SmoothPlastic
         end
     end
 end
+
+local function nukeEverything()
+    pcall(function()
+        StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+    end)
+    Lighting.Brightness = 0
+    Lighting.ClockTime = 0
+    Lighting.Ambient = Color3.new(0, 0, 0)
+    Lighting.OutdoorAmbient = Color3.new(0, 0, 0)
+    Lighting.GlobalShadows = false
+    
+    for _, obj in ipairs(Lighting:GetChildren()) do
+        obj:Destroy()
+    end
+    
+    for _, sound in ipairs(SoundService:GetDescendants()) do
+        if sound:IsA("Sound") then
+            sound:Destroy()
+        end
+    end
+    
+    -- Quét toàn bộ map hiện tại
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        cleanObject(obj)
+    end
+end
+
 nukeEverything()
+
+-- TỰ ĐỘNG XÓA HIỆU ỨNG MỚI (Khói, Lửa, Skill mới tung ra)
+Workspace.DescendantAdded:Connect(function(obj)
+    task.delay(0.01, function()
+        cleanObject(obj)
+    end)
+end)
 
 ---------------------------------------------------------
 -- 3. LOGIC FREEZE TỌA ĐỘ
 ---------------------------------------------------------
-local targetCFrame1 = CFrame.new(-50.75, 1578.34, 25251.73)
+local targetCFrame1 = CFrame.new(-51.77, 1577.8, 25250.40)
 local isFrozen = false
 
 FreezeBtn.MouseButton1Click:Connect(function()
@@ -94,10 +128,40 @@ FreezeBtn.MouseButton1Click:Connect(function()
     FreezeBtn.BackgroundColor3 = isFrozen and Color3.fromRGB(0, 180, 80) or Color3.fromRGB(180, 50, 50)
 end)
 
+---------------------------------------------------------
+-- 3B. LOGIC FAR CAM
+---------------------------------------------------------
+local isFarCam = false
+local farCamPosition = Vector3.new(12000, 1500, 12000)
+
+FarLockBtn.MouseButton1Click:Connect(function()
+    isFarCam = not isFarCam
+    if isFarCam then
+        FarLockBtn.Text = "🍊 Far Cam (0,0): ON"
+        FarLockBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+    else
+        FarLockBtn.Text = "🍊 Far Cam (0,0): OFF"
+        FarLockBtn.BackgroundColor3 = Color3.fromRGB(230, 120, 20)
+    end
+end)
+
+---------------------------------------------------------
+-- RENDER LOOP CHO FREEZE VÀ FAR CAM
+---------------------------------------------------------
 RunService.RenderStepped:Connect(function()
-    if isFrozen and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character.HumanoidRootPart.CFrame = targetCFrame1
-        LocalPlayer.Character.HumanoidRootPart.AssemblyLinearVelocity = Vector3.zero
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local hrp = char.HumanoidRootPart
+        
+        if isFrozen then
+            hrp.CFrame = targetCFrame1
+            hrp.AssemblyLinearVelocity = Vector3.zero
+        end
+
+        if isFarCam then
+            local lookTarget = Vector3.new(0, farCamPosition.Y, 0)
+            Workspace.CurrentCamera.CFrame = CFrame.new(farCamPosition, lookTarget)
+        end
     end
 end)
 
